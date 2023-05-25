@@ -25,7 +25,15 @@ SENZING_ENGINE_CONFIGURATION_JSON
 SENZING_THREADS_PER_PROCESS (default: based on whatever concurrent.futures.ThreadPoolExecutor chooses automatically)
 ```
 
-## Running
+## Building/Running
+
+### Docker
+```
+docker build -t brian/sz_search_perftest .
+docker run --user $UID -v $PWD:/data -it -e SENZING_ENGINE_CONFIGURATION_JSON brian/sz_search_perftest /data/searches.json
+```
+
+### Shell
 ```
 ./sz_search_perftest <search file of JSON lines>
 ```
