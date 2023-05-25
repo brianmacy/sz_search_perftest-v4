@@ -35,7 +35,8 @@ docker run --user $UID -v $PWD:/data -it -e SENZING_ENGINE_CONFIGURATION_JSON br
 
 ### Shell
 ```
-./sz_search_perftest <search file of JSON lines>
+pip3 install -r requirements.txt
+./sz_search_perftest searches.json
 ```
 ## Example output
 ```
