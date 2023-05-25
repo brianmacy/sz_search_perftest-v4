@@ -122,6 +122,13 @@ try:
 
                 print(f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]")
                 timesAll.sort(key=lambda x: x[0], reverse=True)
+
+                i = 0
+                while i<count:
+                    if timesAll[i][0] <= 1.0:
+                        break
+                    i += 1
+                print(f"Percent under 1s: {(count-i)/count*100:.1f}%")
                 print(f"longest: {timesAll[0][0]:.3f}s record[{timesAll[0][1]}]")
 
                 p99 = int(count*.01)
