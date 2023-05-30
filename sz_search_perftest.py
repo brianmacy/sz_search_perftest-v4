@@ -22,7 +22,12 @@ def process_line(engine, line):
         response = bytearray()
         record = orjson.loads(line.encode())
         startTime = timer()
-        engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_BY_ATTRIBUTES_MINIMAL_STRONG )
+        engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_BY_ATTRIBUTES_MINIMAL_ALL )
+        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES )
+        #engine.searchByAttributes( line, response, G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA )
+        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA )
+        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_JSON_DATA)
+        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA | G2EngineFlags.G2_ENTITY_INCLUDE_REPRESENTATIVE_FEATURES )
         return (timer()-startTime,record["RECORD_ID"])
     except Exception as err:
         print(f"{err} [{line}]", file=sys.stderr)
@@ -143,7 +148,7 @@ try:
                     if i == p95:
                         print(f"p95: {timesAll[i][0]:.3f}s record[{timesAll[i][1]}]")
                     if i == p90:
-                        print(f"p95: {timesAll[i][0]:.3f}s record[{timesAll[i][1]}]")
+                        print(f"p90: {timesAll[i][0]:.3f}s record[{timesAll[i][1]}]")
 
                 response = bytearray()
                 g2.stats(response)
