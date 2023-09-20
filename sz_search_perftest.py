@@ -14,7 +14,7 @@ from timeit import default_timer as timer
 
 from senzing import G2Engine, G2Exception, G2EngineFlags, G2Diagnostic
 
-INTERVAL = 10000
+INTERVAL = 1000
 
 
 def process_line(engine, line):
@@ -63,9 +63,6 @@ try:
     g2 = G2Engine()
     g2.init("sz_search_perftest", engine_config, args.debugTrace)
     g2.primeEngine()
-    prevTime = time.time()
-    timeMin = timeMax = timeTot = count = 0;
-    timesAll = []
     max_workers = int(os.getenv("SENZING_THREADS_PER_PROCESS", 0))
     if not max_workers:  # reset to null for executors
         max_workers = None
@@ -75,6 +72,10 @@ try:
     response = bytearray()
     g2Diagnostic.checkDBPerf(3,response)
     print(response.decode())
+
+    beginTime = prevTime = time.time()
+    timeMin = timeMax = timeTot = count = 0;
+    timesAll = []
 
     with open(args.fileToProcess, "r") as fp:
         numLines = 0
@@ -113,7 +114,7 @@ try:
                             nowTime = time.time()
                             speed = int(INTERVAL / (nowTime - prevTime))
                             print(
-                                    f"Processed {numLines} searches, {speed} records per second: avg[{timeTot/count:.3f}s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
+                                    f"Processed {numLines} searches, {speed} records per second: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
                             )
                             prevTime = nowTime
                         if numLines % 100000 == 0:
@@ -125,7 +126,7 @@ try:
                         if line:
                             futures[executor.submit(process_line, g2, line)] = line
 
-                print(f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]")
+                print(f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]")
                 timesAll.sort(key=lambda x: x[0], reverse=True)
 
                 i = 0
