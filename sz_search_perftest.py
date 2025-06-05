@@ -12,23 +12,25 @@ import os
 import time
 from timeit import default_timer as timer
 
-from senzing import G2Engine, G2Exception, G2EngineFlags, G2Diagnostic
+import senzing_core
+from senzing import SzEngineFlags, SzError
 
 INTERVAL = 1000
 
 
 def process_line(engine, line):
     try:
-        response = bytearray()
         record = orjson.loads(line.encode())
         startTime = timer()
-        engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_BY_ATTRIBUTES_MINIMAL_ALL )
-        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES )
-        #engine.searchByAttributes( line, response, G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA )
-        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA )
-        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_JSON_DATA)
-        #engine.searchByAttributes( line, response, G2EngineFlags.G2_SEARCH_INCLUDE_FEATURE_SCORES | G2EngineFlags.G2_ENTITY_INCLUDE_RECORD_DATA | G2EngineFlags.G2_ENTITY_INCLUDE_REPRESENTATIVE_FEATURES )
-        return (timer()-startTime,record["RECORD_ID"])
+        response = engine.search_by_attributes(
+            line, SzEngineFlags.SZ_SEARCH_BY_ATTRIBUTES_MINIMAL_ALL
+        )
+        # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES )
+        # engine.searchByAttributes( line, response, SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA )
+        # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA )
+        # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_JSON_DATA)
+        # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA | SzEngineFlags.SZ_ENTITY_INCLUDE_REPRESENTATIVE_FEATURES )
+        return (timer() - startTime, record["RECORD_ID"])
     except Exception as err:
         print(f"{err} [{line}]", file=sys.stderr)
         raise
@@ -54,27 +56,27 @@ try:
             file=sys.stderr,
         )
         print(
-            "Please see https://senzing.zendesk.com/hc/en-us/articles/360038774134-G2Module-Configuration-and-the-Senzing-API",
+            "Please see https://senzing.zendesk.com/hc/en-us/articles/360038774134-SzModule-Configuration-and-the-Senzing-API",
             file=sys.stderr,
         )
         exit(-1)
 
-    # Initialize the G2Engine
-    g2 = G2Engine()
-    g2.init("sz_search_perftest", engine_config, args.debugTrace)
-    g2.primeEngine()
+    # Initialize Senzing
+    factory = senzing_core.SzAbstractFactoryCore(
+        "sz_search_perftest", engine_config, verbose_logging=args.debugTrace
+    )
+    g2 = factory.create_engine()
+    g2.prime_engine()
     max_workers = int(os.getenv("SENZING_THREADS_PER_PROCESS", 0))
     if not max_workers:  # reset to null for executors
         max_workers = None
 
-    g2Diagnostic = G2Diagnostic()
-    g2Diagnostic.init("sz_search_perftest", engine_config, args.debugTrace)
-    response = bytearray()
-    g2Diagnostic.checkDBPerf(3,response)
-    print(response.decode())
+    g2Diagnostic = factory.create_diagnostic()
+    response = g2Diagnostic.check_datastore_performance(3)
+    print(response)
 
     beginTime = prevTime = time.time()
-    timeMin = timeMax = timeTot = count = 0;
+    timeMin = timeMax = timeTot = count = 0
     timesAll = []
 
     with open(args.fileToProcess, "r") as fp:
@@ -106,43 +108,44 @@ try:
                             if timeMin == 0:
                                 timeMin = result_time
                             else:
-                                timeMin = min(timeMin,result_time)
-                            timeMax = max(timeMax,result_time)
+                                timeMin = min(timeMin, result_time)
+                            timeMax = max(timeMax, result_time)
 
                         numLines += 1
                         if numLines % INTERVAL == 0:
                             nowTime = time.time()
                             speed = int(INTERVAL / (nowTime - prevTime))
                             print(
-                                    f"Processed {numLines} searches, {speed} records per second: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
+                                f"Processed {numLines} searches, {speed} records per second: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
                             )
                             prevTime = nowTime
                         if numLines % 100000 == 0:
-                            response = bytearray()
-                            g2.stats(response)
-                            print(f"\n{response.decode()}\n")
+                            response = g2.get_stats()
+                            print(f"\n{response}\n")
 
                         line = fp.readline()
                         if line:
                             futures[executor.submit(process_line, g2, line)] = line
 
-                print(f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]")
+                print(
+                    f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
+                )
                 timesAll.sort(key=lambda x: x[0], reverse=True)
 
                 i = 0
-                while i<count:
+                while i < count:
                     if timesAll[i][0] <= 1.0:
                         break
                     i += 1
                 print(f"Percent under 1s: {(count-i)/count*100:.1f}%")
                 print(f"longest: {timesAll[0][0]:.3f}s record[{timesAll[0][1]}]")
 
-                p99 = int(count*.01)
-                p95 = int(count*.05)
-                p90 = int(count*.10)
+                p99 = int(count * 0.01)
+                p95 = int(count * 0.05)
+                p90 = int(count * 0.10)
 
                 i = 0
-                while i<p90:
+                while i < p90:
                     i += 1
                     if i == p99:
                         print(f"p99: {timesAll[i][0]:.3f}s record[{timesAll[i][1]}]")
@@ -151,9 +154,8 @@ try:
                     if i == p90:
                         print(f"p90: {timesAll[i][0]:.3f}s record[{timesAll[i][1]}]")
 
-                response = bytearray()
-                g2.stats(response)
-                print(response.decode())
+                response = g2.get_stats()
+                print(response)
 
             except Exception as err:
                 print(f"Shutting down due to error: {err}", file=sys.stderr)
@@ -163,4 +165,3 @@ try:
 except Exception as err:
     print(err, file=sys.stderr)
     exit(-1)
-

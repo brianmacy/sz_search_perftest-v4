@@ -1,7 +1,7 @@
-# docker build -t brian/sz_incremental_withinfo .
-# docker run --user $UID -it -v $PWD:/data -e SENZING_ENGINE_CONFIGURATION_JSON brian/sz_incremental_withinfo -o /data/delta.json -i /data/tmpinfo.json /dev/null
+# docker build -t brian/sz_search_perftest .
+# docker run --user $UID -it -v $PWD:/data -e SENZING_ENGINE_CONFIGURATION_JSON brian/sz_search_perftest
 
-ARG BASE_IMAGE=senzing/senzingapi-runtime:staging
+ARG BASE_IMAGE=senzing/senzingsdk-runtime:staging
 FROM ${BASE_IMAGE}
 
 LABEL Name="brain/sz_search_perftest" \
@@ -17,7 +17,7 @@ RUN apt-get update \
 
 COPY sz_search_perftest.py /app/
 
-ENV PYTHONPATH=/opt/senzing/g2/sdk/python
+ENV PYTHONPATH=/opt/senzing/er/sdk/python
 ENV LANGUAGE=C
 ENV LC_ALL=C.UTF-8
 
