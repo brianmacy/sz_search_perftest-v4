@@ -30,7 +30,7 @@ def process_line(engine, line):
         # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA )
         # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_JSON_DATA)
         # engine.searchByAttributes( line, response, SzEngineFlags.SZ_SEARCH_INCLUDE_FEATURE_SCORES | SzEngineFlags.SZ_ENTITY_INCLUDE_RECORD_DATA | SzEngineFlags.SZ_ENTITY_INCLUDE_REPRESENTATIVE_FEATURES )
-        return (timer() - startTime, record["RECORD_ID"])
+        return (timer() - startTime, record["RECORD_ID"], response)
     except Exception as err:
         print(f"{err} [{line}]", file=sys.stderr)
         raise
@@ -82,6 +82,7 @@ try:
     with open(args.fileToProcess, "r") as fp:
         numLines = 0
         q_multiple = 2
+        total_entities_returned = 0
 
         with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             print(f"Searching with {executor._max_workers} threads")
@@ -110,13 +111,16 @@ try:
                             else:
                                 timeMin = min(timeMin, result_time)
                             timeMax = max(timeMax, result_time)
+                            response = orjson.loads(result[2])
+                            if response:
+                                total_entities_returned += len(response["RESOLVED_ENTITIES"])
 
                         numLines += 1
                         if numLines % INTERVAL == 0:
                             nowTime = time.time()
                             speed = int(INTERVAL / (nowTime - prevTime))
                             print(
-                                f"Processed {numLines} searches, {speed} records per second: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
+                                f"Processed {numLines} searches, {speed} records per second, entities returned {total_entities_returned}: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
                             )
                             prevTime = nowTime
                         if numLines % 100000 == 0:
@@ -128,7 +132,7 @@ try:
                             futures[executor.submit(process_line, g2, line)] = line
 
                 print(
-                    f"Processed total of {numLines} searches: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
+                    f"Processed total of {numLines} searches, entities returned {total_entities_returned}: avg[{timeTot/count:.3f}s] tps[{count/(time.time()-beginTime):.3f}/s] min[{timeMin:.3f}s] max[{timeMax:.3f}s]"
                 )
                 timesAll.sort(key=lambda x: x[0], reverse=True)
 

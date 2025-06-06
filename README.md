@@ -5,11 +5,11 @@ Simple parallel JSON data processor using the Senzing API and is meant to provid
 
 # API demonstrated
 ### Core
-* searchByAttributes: Searches the JSON search request (assumes a RECORD_ID attribute for tracking)
+* search_by_attributes: Searches the JSON search request (assumes a RECORD_ID attribute for tracking)
 ### Supporting
-* init: To initialize the G2Engine and G2Diagnostics objects
-* stats: To retrieve internal engine diagnostic information as to what is going on in the engine
-* checkDBPerf: To check single threaded/connection DB latency
+* senzing_core.SzAbstractFactory: To initialize the Sz environment
+* get_stats: To retrieve internal engine diagnostic information as to what is going on in the engine
+* check_datastore_performance: To check single threaded/connection DB latency
 
 For more details on the Senzing API go to https://docs.senzing.com
 
