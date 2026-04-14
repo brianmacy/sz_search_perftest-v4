@@ -1,1 +1,1 @@
-orjson
+orjson==3.11.8
