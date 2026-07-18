@@ -3,7 +3,6 @@
 import concurrent.futures
 
 import argparse
-import pathlib
 import orjson
 import itertools
 
@@ -13,7 +12,7 @@ import time
 from timeit import default_timer as timer
 
 import senzing_core
-from senzing import SzEngineFlags, SzError
+from senzing import SzEngineFlags
 
 INTERVAL = 1000
 
