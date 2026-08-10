@@ -1,16 +1,14 @@
 #! /usr/bin/env python3
 
-import concurrent.futures
-
 import argparse
-import orjson
+import concurrent.futures
 import itertools
-
-import sys
 import os
+import sys
 import time
 from timeit import default_timer as timer
 
+import orjson
 import senzing_core
 from senzing import SzEngineFlags
 
@@ -58,7 +56,7 @@ try:
             "Please see https://senzing.zendesk.com/hc/en-us/articles/360038774134-SzModule-Configuration-and-the-Senzing-API",
             file=sys.stderr,
         )
-        exit(-1)
+        sys.exit(-1)
 
     # Initialize Senzing
     factory = senzing_core.SzAbstractFactoryCore(
@@ -66,7 +64,7 @@ try:
     )
     g2 = factory.create_engine()
     g2.prime_engine()
-    max_workers = int(os.getenv("SENZING_THREADS_PER_PROCESS", 0))
+    max_workers = int(os.getenv("SENZING_THREADS_PER_PROCESS", "0"))
     if not max_workers:  # reset to null for executors
         max_workers = None
 
@@ -163,8 +161,8 @@ try:
             except Exception as err:
                 print(f"Shutting down due to error: {err}", file=sys.stderr)
                 executor.shutdown()
-                exit(-1)
+                sys.exit(-1)
 
 except Exception as err:
     print(err, file=sys.stderr)
-    exit(-1)
+    sys.exit(-1)
